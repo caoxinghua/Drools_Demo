@@ -14,6 +14,4 @@ public interface DroolsRuleService {
     void addDroolsRule(DroolsRule droolsRule);
 
     void updateDroolsRule(DroolsRule droolsRule);
-
-    void deleteDroolsRule(Long ruleId, String ruleName);
 }

@@ -41,13 +41,4 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
         droolsRuleMap.put(droolsRule.getRuleId(), droolsRule);
         droolsManager.addOrUpdateRule(droolsRule);
     }
-
-    @Override
-    public void deleteDroolsRule(Long ruleId, String ruleName) {
-        DroolsRule droolsRule = droolsRuleMap.get(ruleId);
-        if (null != droolsRule) {
-            droolsRuleMap.remove(ruleId);
-            droolsManager.deleteDroolsRule(droolsRule, ruleName);
-        }
-    }
 }

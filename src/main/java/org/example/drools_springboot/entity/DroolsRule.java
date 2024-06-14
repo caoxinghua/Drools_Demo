@@ -15,6 +15,10 @@ public class DroolsRule {
      */
     private Long ruleId;
     /**
+     * kContainer Name
+     */
+    private String containerName;
+    /**
      * kBase Name
      */
     private String kieBaseName;

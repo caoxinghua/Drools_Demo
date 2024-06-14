@@ -35,14 +35,8 @@ public class DroolsRuleController {
         return "Update rule success";
     }
 
-    @PostMapping("deleteRule")
-    public String deleteRule(Long ruleId, String ruleName) {
-        droolsRuleService.deleteDroolsRule(ruleId, ruleName);
-        return "Delete rule success";
-    }
-
     @GetMapping("fireRule")
-    public String fireRule(String kieBaseName, Integer param) {
-        return droolsManager.fireRule(kieBaseName, param);
+    public String fireRule(@RequestParam String containerName, @RequestParam String kieBaseName, @RequestParam Integer param) {
+        return droolsManager.fireRule(containerName, kieBaseName, param);
     }
 }
