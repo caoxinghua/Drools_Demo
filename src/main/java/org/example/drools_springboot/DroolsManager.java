@@ -49,24 +49,16 @@ public class DroolsManager {
     public void addOrUpdateRule(DroolsRule droolsRule) {
         String containerName = droolsRule.getContainerName();
         String kieBaseName = droolsRule.getKieBaseName();
+        KieContainer kieContainer = null;
         KieFileSystem kieFileSystem = kieFileSystemMap.computeIfAbsent(containerName, k -> kieServices.newKieFileSystem());
 
         boolean existsKieBase = existsKieBase(containerName, kieBaseName);
-        KieModuleModel kieModuleModel;
-        KieBaseModel kieBaseModel;
-        if (!existsKieBase) {
-            kieModuleModel = kieServices.newKieModuleModel();
-            kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName);
-            kieBaseModel.setDefault(false);
-            kieBaseModel.addPackage(droolsRule.getKiePackageName());
-            kieBaseModel.newKieSessionModel(kieBaseName + "-session")
-                    .setDefault(false);
-        } else {
-            KieContainer kieContainer = kieContainerMap.get(containerName);
-            kieModuleModel = kieServices.newKieModuleModel();
-            kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName);
-            kieBaseModel.setDefault(false);
+        KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
+        KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName);
+        kieBaseModel.setDefault(false);
 
+        if (existsKieBase) {
+            kieContainer = kieContainerMap.get(containerName);
             KieBase kieBase = kieContainer.getKieBase(kieBaseName);
             if (kieBase != null) {
                 Collection<KiePackage> kiePackages = kieBase.getKiePackages();
@@ -74,12 +66,9 @@ public class DroolsManager {
                     kieBaseModel.addPackage(kiePackage.getName());
                 }
             }
-
-            // Add the session to the KieBaseModel
-            kieBaseModel.newKieSessionModel(kieBaseName + "-session")
-                    .setDefault(false);
         }
 
+        kieBaseModel.newKieSessionModel(kieBaseName + "-session").setDefault(false);
         kieBaseModel.addPackage(droolsRule.getKiePackageName());
 
         String file = "src/main/resources/" + droolsRule.getKiePackageName() + "/" + droolsRule.getRuleId() + ".drl";
@@ -90,13 +79,6 @@ public class DroolsManager {
         log.info("Load kmodule.xml:[\n{}]", kmoduleXml);
         kieFileSystem.writeKModuleXML(kmoduleXml);
 
-        buildKieContainer(containerName, kieFileSystem);
-    }
-
-    /**
-     * Create KieContainer
-     */
-    private void buildKieContainer(String containerName, KieFileSystem kieFileSystem) {
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem);
         kieBuilder.buildAll();
         Results results = kieBuilder.getResults();
@@ -108,7 +90,12 @@ public class DroolsManager {
             throw new RuntimeException("Loading rules failed");
         }
 
-        KieContainer kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
+        if (null == kieContainer) {
+            kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
+        } else {
+            ((KieContainerImpl) kieContainer).updateToKieModule((InternalKieModule) kieBuilder.getKieModule());
+        }
+
         kieContainerMap.put(containerName, kieContainer);
     }
 
