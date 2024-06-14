@@ -29,41 +29,29 @@ public class DroolsManager {
     private final Map<String, KieFileSystem> kieFileSystemMap = new HashMap<>();
 
     /**
-     * If KBase exists
-     */
-    public boolean existsKieBase(String containerName, String kieBaseName) {
-        KieContainer kieContainer = kieContainerMap.get(containerName);
-        if (null == kieContainer) {
-            return false;
-        }
-        Collection<String> kieBaseNames = kieContainer.getKieBaseNames();
-        if (kieBaseNames.contains(kieBaseName)) {
-            return true;
-        }
-        log.info("Missing KieBase:{}", kieBaseName);
-        return false;
-    }
-    /**
      * Add or update rule file
      */
     public void addOrUpdateRule(DroolsRule droolsRule) {
+        long startTime = System.currentTimeMillis();
         String containerName = droolsRule.getContainerName();
         String kieBaseName = droolsRule.getKieBaseName();
         KieContainer kieContainer = null;
         KieFileSystem kieFileSystem = kieFileSystemMap.computeIfAbsent(containerName, k -> kieServices.newKieFileSystem());
 
-        boolean existsKieBase = existsKieBase(containerName, kieBaseName);
         KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
         KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName);
         kieBaseModel.setDefault(false);
 
-        if (existsKieBase) {
-            kieContainer = kieContainerMap.get(containerName);
-            KieBase kieBase = kieContainer.getKieBase(kieBaseName);
-            if (kieBase != null) {
-                Collection<KiePackage> kiePackages = kieBase.getKiePackages();
-                for (KiePackage kiePackage : kiePackages) {
-                    kieBaseModel.addPackage(kiePackage.getName());
+        kieContainer = kieContainerMap.get(containerName);
+        if (null != kieContainer) {
+            Collection<String> kieBaseNames = kieContainer.getKieBaseNames();
+            if (kieBaseNames.contains(kieBaseName)) {
+                KieBase kieBase = kieContainer.getKieBase(kieBaseName);
+                if (kieBase != null) {
+                    Collection<KiePackage> kiePackages = kieBase.getKiePackages();
+                    for (KiePackage kiePackage : kiePackages) {
+                        kieBaseModel.addPackage(kiePackage.getName());
+                    }
                 }
             }
         }
@@ -72,21 +60,20 @@ public class DroolsManager {
         kieBaseModel.addPackage(droolsRule.getKiePackageName());
 
         String file = "src/main/resources/" + droolsRule.getKiePackageName() + "/" + droolsRule.getRuleId() + ".drl";
-        log.info("Load rules: {}", file);
+        System.out.println("Load rules: " + file);
         kieFileSystem.write(file, droolsRule.getRuleContent());
 
         String kmoduleXml = kieModuleModel.toXML();
         log.info("Load kmodule.xml:[\n{}]", kmoduleXml);
         kieFileSystem.writeKModuleXML(kmoduleXml);
 
+        //Update Container
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem);
         kieBuilder.buildAll();
         Results results = kieBuilder.getResults();
         List<Message> messages = results.getMessages(Message.Level.ERROR);
         if (null != messages && !messages.isEmpty()) {
-            for (Message message : messages) {
-                log.error(message.getText());
-            }
+            log.error(messages.toString());
             throw new RuntimeException("Loading rules failed");
         }
 
@@ -97,12 +84,15 @@ public class DroolsManager {
         }
 
         kieContainerMap.put(containerName, kieContainer);
+        long endTime = System.currentTimeMillis();
+        System.out.println("addOrUpdateRule execution time: " + (endTime - startTime) + " ms");
     }
 
     /**
      * Fire Rule
      */
     public String fireRule(String containerName, String kieBaseName, Integer param) {
+        long startTime = System.currentTimeMillis();
         KieContainer kieContainer = kieContainerMap.get(containerName);
         if (kieContainer == null) {
             throw new RuntimeException("KieContainer not found for container name: " + containerName);
@@ -124,6 +114,8 @@ public class DroolsManager {
         kieSession.insert(param);
         kieSession.fireAllRules();
         kieSession.dispose();
+        long endTime = System.currentTimeMillis();
+        System.out.println("fireRule execution time: " + (endTime - startTime) + " ms");
         return "OK";
     }
 }
