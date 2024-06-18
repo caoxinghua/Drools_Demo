@@ -39,10 +39,10 @@ public class DroolsManager {
 
         KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
         kieModuleModel.newKieBaseModel(kieBaseName)
-                .setDefault(false)
+                .setDefault(false) //false for KBase
                 .addPackage(droolsRule.getKiePackageName())
                 .newKieSessionModel(kieBaseName + "-session")
-                .setDefault(false);
+                .setDefault(false); //false for KSession
 
         String file = "src/main/resources/" + droolsRule.getKiePackageName() + "/" + droolsRule.getRuleId() + ".drl";
         kieFileSystem.write(file, droolsRule.getRuleContent());
