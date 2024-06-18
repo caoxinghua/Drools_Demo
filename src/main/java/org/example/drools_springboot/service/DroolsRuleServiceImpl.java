@@ -31,7 +31,18 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
         droolsRule.validate();
         droolsRule.setCreatedTime(new Date());
         droolsRuleMap.put(droolsRule.getRuleId(), droolsRule);
-        droolsManager.addOrUpdateRule(droolsRule); //updating container
+
+        // Construct the ruleContent string
+        String ruleContent = "package " + droolsRule.getKiePackageName() + "\n" +
+                "rule \"" + droolsRule.getRuleName() + "\"\n" +
+                "when\n" +
+                "    " + droolsRule.getIfCondition() + "\n" +
+                "then\n" +
+                "    " + droolsRule.getThenCondition() + "\n" +
+                "end";
+
+        droolsRule.setRuleContent(ruleContent);
+        droolsManager.addOrUpdateRule(droolsRule);
 
     }
 
@@ -40,6 +51,17 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
         droolsRule.validate();
         droolsRule.setUpdateTime(new Date());
         droolsRuleMap.put(droolsRule.getRuleId(), droolsRule);
+
+        // Construct the ruleContent string
+        String ruleContent = "package " + droolsRule.getKiePackageName() + "\n" +
+                "rule \"" + droolsRule.getRuleName() + "\"\n" +
+                "when\n" +
+                "    " + droolsRule.getIfCondition() + "\n" +
+                "then\n" +
+                "    " + droolsRule.getThenCondition() + "\n" +
+                "end";
+
+        droolsRule.setRuleContent(ruleContent);
         droolsManager.addOrUpdateRule(droolsRule);
     }
 }

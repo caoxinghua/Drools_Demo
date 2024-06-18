@@ -31,6 +31,18 @@ public class DroolsRule {
      */
     private String ruleContent;
     /**
+     * rule name
+     */
+    private String ruleName;
+    /**
+     * if condition
+     */
+    private String ifCondition;
+    /**
+     * then condition
+     */
+    private String thenCondition;
+    /**
      * create time
      */
     private Date createdTime;
@@ -40,7 +52,7 @@ public class DroolsRule {
     private Date updateTime;
 
     public void validate() {
-        if (this.ruleId == null || isBlank(kieBaseName) || isBlank(kiePackageName) || isBlank(ruleContent)) {
+        if (this.ruleId == null || isBlank(kieBaseName) || isBlank(kiePackageName) || isBlank(ruleName)|| isBlank(ifCondition)|| isBlank(thenCondition)) {
             throw new RuntimeException("Validation failed");
         }
     }
