@@ -35,14 +35,28 @@ public class DroolsManager {
         long startTime = System.currentTimeMillis();
         String containerName = droolsRule.getContainerName();
         String kieBaseName = droolsRule.getKieBaseName();
-        KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
 
+        KieFileSystem kieFileSystem = kieFileSystemMap.computeIfAbsent(containerName, k -> kieServices.newKieFileSystem());
         KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
-        kieModuleModel.newKieBaseModel(kieBaseName)
-                .setDefault(false) //false for KBase
-                .addPackage(droolsRule.getKiePackageName())
-                .newKieSessionModel(kieBaseName + "-session")
+
+        KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName)
+                .setDefault(false); //false for KBase
+
+        kieBaseModel.newKieSessionModel(kieBaseName + "-session")
                 .setDefault(false); //false for KSession
+
+        KieContainer kieContainer = kieContainerMap.get(containerName);
+        if (kieContainer != null) {
+            KieBase kieBase = kieContainer.getKieBase(kieBaseName);
+            if (kieBase != null) {
+                Collection<KiePackage> kiePackages = kieBase.getKiePackages();
+                for (KiePackage kiePackage : kiePackages) {
+                    kieBaseModel.addPackage(kiePackage.getName());
+                }
+            }
+        }
+
+        kieBaseModel.addPackage(droolsRule.getKiePackageName());
 
         String file = "src/main/resources/" + droolsRule.getKiePackageName() + "/" + droolsRule.getRuleId() + ".drl";
         kieFileSystem.write(file, droolsRule.getRuleContent());
@@ -50,23 +64,21 @@ public class DroolsManager {
         String kmoduleXml = kieModuleModel.toXML();
         kieFileSystem.writeKModuleXML(kmoduleXml);
 
-        // Build KieContainer
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem);
         kieBuilder.buildAll();
+
         Results results = kieBuilder.getResults();
         List<Message> messages = results.getMessages(Message.Level.ERROR);
-        if (null != messages && !messages.isEmpty()) {
+        if (messages != null && !messages.isEmpty()) {
             log.error(messages.toString());
             throw new RuntimeException("Loading rules failed");
         }
 
-        KieContainer kieContainer = kieContainerMap.get(containerName);
         if (kieContainer == null) {
             kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
         } else {
             kieContainer.updateToVersion(kieServices.getRepository().getDefaultReleaseId());
         }
-
         kieContainerMap.put(containerName, kieContainer);
 
         long endTime = System.currentTimeMillis();
