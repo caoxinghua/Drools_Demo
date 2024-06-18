@@ -31,7 +31,17 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
         droolsRule.validate();
         droolsRule.setCreatedTime(new Date());
         droolsRuleMap.put(droolsRule.getRuleId(), droolsRule);
-        droolsManager.addOrUpdateRule(droolsRule);
+        //1. DB is updated
+        //2. not adding rule to container
+        //3. create new container
+        //4. add rule into Module
+        //5. Add Module to container
+        //6. run the rule
+        //7. dispose()
+
+        //Not this way
+        droolsManager.addOrUpdateRule(droolsRule); //updating container
+
     }
 
     @Override

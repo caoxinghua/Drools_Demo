@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kie.builder.impl.KieContainerImpl;
 import org.kie.api.KieBase;
+import org.kie.api.KieBaseConfiguration;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
@@ -19,12 +20,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-
 @Component
 @Slf4j
 public class DroolsManager {
 
-    private final KieServices kieServices = KieServices.get();
+    private final KieServices kieServices = KieServices.Factory.get();
     private final Map<String, KieContainer> kieContainerMap = new HashMap<>();
     private final Map<String, KieFileSystem> kieFileSystemMap = new HashMap<>();
 
@@ -35,39 +35,22 @@ public class DroolsManager {
         long startTime = System.currentTimeMillis();
         String containerName = droolsRule.getContainerName();
         String kieBaseName = droolsRule.getKieBaseName();
-        KieContainer kieContainer = null;
-        KieFileSystem kieFileSystem = kieFileSystemMap.computeIfAbsent(containerName, k -> kieServices.newKieFileSystem());
+        KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
 
         KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
-        KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(kieBaseName);
-        kieBaseModel.setDefault(false);
-
-        kieContainer = kieContainerMap.get(containerName);
-        if (null != kieContainer) {
-            Collection<String> kieBaseNames = kieContainer.getKieBaseNames();
-            if (kieBaseNames.contains(kieBaseName)) {
-                KieBase kieBase = kieContainer.getKieBase(kieBaseName);
-                if (kieBase != null) {
-                    Collection<KiePackage> kiePackages = kieBase.getKiePackages();
-                    for (KiePackage kiePackage : kiePackages) {
-                        kieBaseModel.addPackage(kiePackage.getName());
-                    }
-                }
-            }
-        }
-
-        kieBaseModel.newKieSessionModel(kieBaseName + "-session").setDefault(false);
-        kieBaseModel.addPackage(droolsRule.getKiePackageName());
+        kieModuleModel.newKieBaseModel(kieBaseName)
+                .setDefault(false)
+                .addPackage(droolsRule.getKiePackageName())
+                .newKieSessionModel(kieBaseName + "-session")
+                .setDefault(false);
 
         String file = "src/main/resources/" + droolsRule.getKiePackageName() + "/" + droolsRule.getRuleId() + ".drl";
-        System.out.println("Load rules: " + file);
         kieFileSystem.write(file, droolsRule.getRuleContent());
 
         String kmoduleXml = kieModuleModel.toXML();
-        log.info("Load kmodule.xml:[\n{}]", kmoduleXml);
         kieFileSystem.writeKModuleXML(kmoduleXml);
 
-        //Update Container
+        // Build KieContainer
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem);
         kieBuilder.buildAll();
         Results results = kieBuilder.getResults();
@@ -77,13 +60,15 @@ public class DroolsManager {
             throw new RuntimeException("Loading rules failed");
         }
 
-        if (null == kieContainer) {
+        KieContainer kieContainer = kieContainerMap.get(containerName);
+        if (kieContainer == null) {
             kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
         } else {
-            ((KieContainerImpl) kieContainer).updateToKieModule((InternalKieModule) kieBuilder.getKieModule());
+            kieContainer.updateToVersion(kieServices.getRepository().getDefaultReleaseId());
         }
 
         kieContainerMap.put(containerName, kieContainer);
+
         long endTime = System.currentTimeMillis();
         System.out.println("addOrUpdateRule execution time: " + (endTime - startTime) + " ms");
     }
@@ -98,22 +83,17 @@ public class DroolsManager {
             throw new RuntimeException("KieContainer not found for container name: " + containerName);
         }
 
-
         KieBase kieBase = kieContainer.getKieBase(kieBaseName);
         if (kieBase == null) {
             throw new RuntimeException("KieBase not found for KieBase name: " + kieBaseName);
         }
 
-        for (KiePackage kiePackage : kieBase.getKiePackages()) {
-            for (org.kie.api.definition.rule.Rule rule : kiePackage.getRules()) {
-                System.out.println(rule.getPackageName() + "." + rule.getName() + "\n");
-            }
-        }
+        KieSession kieSession = kieBase.newKieSession();
 
-        KieSession kieSession = kieContainer.newKieSession(kieBaseName + "-session");
         kieSession.insert(param);
         kieSession.fireAllRules();
         kieSession.dispose();
+
         long endTime = System.currentTimeMillis();
         System.out.println("fireRule execution time: " + (endTime - startTime) + " ms");
         return "OK";
