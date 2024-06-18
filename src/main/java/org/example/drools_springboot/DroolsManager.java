@@ -2,10 +2,7 @@ package org.example.drools_springboot;
 
 import org.example.drools_springboot.entity.DroolsRule;
 import lombok.extern.slf4j.Slf4j;
-import org.drools.compiler.kie.builder.impl.InternalKieModule;
-import org.drools.compiler.kie.builder.impl.KieContainerImpl;
 import org.kie.api.KieBase;
-import org.kie.api.KieBaseConfiguration;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;

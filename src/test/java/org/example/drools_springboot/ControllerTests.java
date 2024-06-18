@@ -28,13 +28,9 @@ public class ControllerTests {
                     droolsRule.setContainerName(containerName);
                     droolsRule.setKieBaseName("kieBase" + i);
                     droolsRule.setKiePackageName(kiePackageName);
-                    droolsRule.setRuleContent("package " + kiePackageName + "\n" +
-                            "rule \"rule-" + i + "-" + j + "-" + k + "\"\n" +
-                            "when\n" +
-                            "    $i: Integer(intValue >= " + (k - 1) + " && intValue <= " + (k + 1) + ")\n" +
-                            "then\n" +
-                            "    System.out.println(drools.getRule().getPackageName() + \".\" + drools.getRule().getName() + \" Run the rule and passed parameter: \" + $i);\n" +
-                            "end");
+                    droolsRule.setRuleName("rule-" + i + "-" + j + "-" + k);
+                    droolsRule.setIfCondition("$i: Integer(intValue >= " + (k - 1) + " && intValue <= " + (k + 1) + ")");
+                    droolsRule.setThenCondition("System.out.println(drools.getRule().getPackageName() + \".\" + drools.getRule().getName() + \" Run the rule and passed parameter: \" + $i);");
                     droolsRuleService.addDroolsRule(droolsRule);
                 }
             }
