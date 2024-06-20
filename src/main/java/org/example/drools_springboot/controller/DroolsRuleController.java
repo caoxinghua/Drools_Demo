@@ -6,9 +6,9 @@ import org.example.drools_springboot.service.DroolsRuleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
 
-
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/drools/rule")
 public class DroolsRuleController {
@@ -37,6 +37,11 @@ public class DroolsRuleController {
 
     @GetMapping("fireRule")
     public String fireRule(@RequestParam String containerName, @RequestParam String kieBaseName, @RequestParam Integer param) {
-        return droolsManager.fireRule(containerName, kieBaseName, param);
+        return droolsManager.fireRule(containerName, kieBaseName, param, null);
+    }
+
+    @PostMapping("fireRule")
+    public String fireRuleWithJson(@RequestParam String containerName, @RequestParam String kieBaseName, @RequestBody Map<String, Object> payload) {
+        return droolsManager.fireRule(containerName, kieBaseName, null, payload);
     }
 }

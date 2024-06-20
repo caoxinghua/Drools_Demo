@@ -2,6 +2,7 @@ package org.example.drools_springboot;
 
 import org.example.drools_springboot.entity.DroolsRule;
 import lombok.extern.slf4j.Slf4j;
+import org.example.drools_springboot.entity.Order;
 import org.kie.api.KieBase;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
@@ -85,7 +86,7 @@ public class DroolsManager {
     /**
      * Fire Rule
      */
-    public String fireRule(String containerName, String kieBaseName, Integer param) {
+    public String fireRule(String containerName, String kieBaseName, Integer param, Map<String, Object> payload) {
         long startTime = System.currentTimeMillis();
         KieContainer kieContainer = kieContainerMap.get(containerName);
         if (kieContainer == null) {
@@ -99,12 +100,47 @@ public class DroolsManager {
 
         KieSession kieSession = kieBase.newKieSession();
 
-        kieSession.insert(param);
-        kieSession.fireAllRules();
+        if (param != null) {
+            kieSession.insert(param);
+        } else if (payload != null) {
+            for (Map.Entry<String, Object> entry : payload.entrySet()) {
+                String factType = entry.getKey();
+                Map<String, Object> factData = (Map<String, Object>) entry.getValue();
+                Object fact = createFactObject(factType, factData);
+                kieSession.insert(fact);
+            }
+        }
+
+        int firedRules = kieSession.fireAllRules();
         kieSession.dispose();
 
         long endTime = System.currentTimeMillis();
         System.out.println("fireRule execution time: " + (endTime - startTime) + " ms");
-        return "OK";
+        return "Fired " + firedRules + " rules";
+    }
+
+    private Object createFactObject(String factType, Map<String, Object> factData) {
+        switch (factType) {
+            case "Order":
+                Order order = new Order();
+                Object totalAmountObj = factData.get("totalAmount");
+                if (totalAmountObj != null) {
+                    if (totalAmountObj instanceof Number) {
+                        order.setTotalAmount(((Number) totalAmountObj).doubleValue());
+                    } else if (totalAmountObj instanceof String) {
+                        try {
+                            order.setTotalAmount(Double.parseDouble((String) totalAmountObj));
+                        } catch (NumberFormatException e) {
+                            throw new RuntimeException("Invalid totalAmount format: " + totalAmountObj);
+                        }
+                    } else {
+                        throw new RuntimeException("Unexpected type for totalAmount: " + totalAmountObj.getClass());
+                    }
+                }
+                return order;
+            // Add cases for other fact types as needed
+            default:
+                throw new RuntimeException("Unknown fact type: " + factType);
+        }
     }
 }

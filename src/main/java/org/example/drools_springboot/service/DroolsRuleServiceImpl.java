@@ -31,19 +31,20 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
         droolsRule.validate();
         droolsRule.setCreatedTime(new Date());
         droolsRuleMap.put(droolsRule.getRuleId(), droolsRule);
+        if(null == droolsRule.getRuleContent()) {
+            // Construct the ruleContent string
+            String ruleContent = "package " + droolsRule.getKiePackageName() + "\n" +
+                    "rule \"" + droolsRule.getRuleName() + "\"\n" +
+                    "when\n" +
+                    "    " + droolsRule.getIfCondition() + "\n" +
+                    "then\n" +
+                    "    " + droolsRule.getThenCondition() + "\n" +
+                    "end";
 
-        // Construct the ruleContent string
-        String ruleContent = "package " + droolsRule.getKiePackageName() + "\n" +
-                "rule \"" + droolsRule.getRuleName() + "\"\n" +
-                "when\n" +
-                "    " + droolsRule.getIfCondition() + "\n" +
-                "then\n" +
-                "    " + droolsRule.getThenCondition() + "\n" +
-                "end";
+            droolsRule.setRuleContent(ruleContent);
+        }
 
-        droolsRule.setRuleContent(ruleContent);
         droolsManager.addOrUpdateRule(droolsRule);
-
     }
 
     @Override

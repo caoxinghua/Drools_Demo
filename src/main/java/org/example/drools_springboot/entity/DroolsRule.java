@@ -52,7 +52,7 @@ public class DroolsRule {
     private Date updateTime;
 
     public void validate() {
-        if (this.ruleId == null || isBlank(kieBaseName) || isBlank(kiePackageName) || isBlank(ruleName)|| isBlank(ifCondition)|| isBlank(thenCondition)) {
+        if (this.ruleId == null || isBlank(kieBaseName) || isBlank(kiePackageName) || isBlank(ruleName)) {
             throw new RuntimeException("Validation failed");
         }
     }
